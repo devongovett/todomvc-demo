@@ -8,8 +8,8 @@ const router = new Navigo(null, true);
 
 export default class TodoMVCApp extends Component {
 
-  @tracked todos: Todo[] = [];
-  @tracked mode: string = 'all';
+  todos = [];
+  mode = 'all';
 
   constructor(options) {
     super(options);
@@ -64,6 +64,7 @@ export default class TodoMVCApp extends Component {
 
   commitTodos(todos = this.todos) {
     this.todos = todos;
+    console.log(todos)
     this.todoStore.store(todos);
   }
 

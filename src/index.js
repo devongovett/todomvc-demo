@@ -2,6 +2,7 @@ import App from './main';
 import { ComponentManager, setPropertyDidChange } from '@glimmer/component';
 
 const app = new App();
+console.log(app)
 const containerElement = document.getElementById('app');
 
 setPropertyDidChange(() => {

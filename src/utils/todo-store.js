@@ -1,9 +1,9 @@
 import Todo from './todo';
 
 export default class TodoStore {
-  private storageKey = 'glimmer-todomvc:todos';
+  storageKey = 'glimmer-todomvc:todos';
 
-  fetch(): Todo[] {
+  fetch() {
     let json = localStorage.getItem(this.storageKey);
 
     if (json) {
@@ -13,7 +13,7 @@ export default class TodoStore {
     }
   }
 
-  store(todos: Todo[]) {
+  store(todos) {
     let json = JSON.stringify(
       todos.map(todo => ({
           title: todo.title,

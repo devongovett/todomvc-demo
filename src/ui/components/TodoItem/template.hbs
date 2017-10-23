@@ -2,7 +2,7 @@
   <div class="view">
     <input type="checkbox"
            class="toggle"
-           checked={{@todo.completed}} 
+           checked={{@todo.completed}}
            onchange={{action @onToggle @todo}}>
 
     <label ondblclick={{action beginEdit}}>{{@todo.title}}</label>
