@@ -21,7 +21,7 @@ class GlimmerAsset extends Asset {
     // this function was copied and modified from glimmer-analyzer
     // TODO: use directly instead
     let resolver = project.resolver;
-    let templateSpecifier = 'template:/' + path.relative(process.cwd(), this.name);
+    let templateSpecifier = project.specifierForPath(path.relative(process.cwd(), this.name));
     let components = new Set;
     let helpers = new Set;
     let hasComponentHelper = false;
@@ -73,17 +73,38 @@ class GlimmerAsset extends Asset {
 
     for (let specifier of [...components, ...helpers]) {
       let specifierPath = project.pathForSpecifier(specifier);
-      console.log(this.name, path.resolve(specifierPath), path.relative(path.dirname(this.name), path.resolve(specifierPath)))
-      this.addDependency(path.relative(path.dirname(this.name), path.resolve(specifierPath)));
+      this.addDependency('./' + path.relative(path.dirname(this.name), path.resolve(specifierPath)), {specifier});
+    }
+
+    let componentSpecifier = project.resolver.identify(`component:${templateSpecifier.split(':')[1]}`);
+    if (componentSpecifier) {
+      let specifierPath = project.pathForSpecifier(componentSpecifier);
+      this.addDependency('./' + path.relative(path.dirname(this.name), path.resolve(specifierPath)), {specifier: componentSpecifier});
     }
   }
 
   generate() {
     let template = TemplateCompiler.compile({meta: specifierFor(this.name, 'default')}, this.ast);
 
+    let map = path.relative(path.dirname(this.name), require.resolve('./module-map'));
+    this.addDependency(map);
+
+    let specifier = project.specifierForPath(path.relative(process.cwd(), this.name));
+    let js = `
+      var map = require(${JSON.stringify(map)});
+      module.exports = map[${JSON.stringify(specifier)}] = ${precompile(this.contents)}; // TODO: remove this when we are loading GBX file instead
+    `;
+
+    for (let dep of this.dependencies.values()) {
+      if (dep.specifier) {
+        // This is not great. Should check __esModule key or something instead.
+        js += `map[${JSON.stringify(dep.specifier)}] = require(${JSON.stringify(dep.name)})${dep.specifier.split(':')[0] !== 'template' ? '.default' : ''};`
+      }
+    }
+
     return {
       gbx: template.toJSON(),
-      js: `module.exports=${precompile(this.contents)};` // TODO: remove this when loading from GBX file instead
+      js: js
     };
   }
 }
