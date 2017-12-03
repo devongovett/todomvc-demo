@@ -1,4 +1,4 @@
-const Bundler = require('parcel');
+const Bundler = require('parcel-bundler');
 
 const bundler = new Bundler('src/ui/index.html', {cache: false});
 bundler.addAssetType('.hbs', require.resolve('./GlimmerAsset'));

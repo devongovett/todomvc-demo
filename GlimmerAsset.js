@@ -1,9 +1,10 @@
-const Asset = require('parcel/src/Asset');
+const {Asset} = require('parcel-bundler');
 const {preprocess, traverse} = require('@glimmer/syntax');
 const {precompile, TemplateCompiler} = require('@glimmer/compiler');
 const {specifierFor} = require('@glimmer/bundle-compiler');
 const {Project} = require('glimmer-analyzer');
 const path = require('path');
+const {MUCompilerDelegate} = require('@glimmer/compiler-delegates');
 
 const project = new Project(process.cwd());
 
@@ -11,6 +12,14 @@ class GlimmerAsset extends Asset {
   constructor(name, pkg, options) {
     super(name, pkg, options);
     this.type = 'gbx';
+
+    this.delegate = new MUCompilerDelegate({
+      projectPath: process.cwd(),
+      outputFiles: {
+        dataSegment: 'table.js',
+        heapFile: 'templates.gbx'
+      }
+    });
   }
 
   parse(code) {
@@ -83,28 +92,18 @@ class GlimmerAsset extends Asset {
     }
   }
 
+  templateLocatorFor(absoluteModulePath) {
+    let normalizedPath = this.delegate.normalizePath(absoluteModulePath);
+    return this.delegate.templateLocatorFor({ module: normalizedPath, name: 'default' });
+  }
+
   generate() {
-    let template = TemplateCompiler.compile({meta: specifierFor(this.name, 'default')}, this.ast);
-
-    let map = path.relative(path.dirname(this.name), require.resolve('./module-map'));
-    this.addDependency(map);
-
-    let specifier = project.specifierForPath(path.relative(process.cwd(), this.name));
-    let js = `
-      var map = require(${JSON.stringify(map)});
-      module.exports = map[${JSON.stringify(specifier)}] = ${precompile(this.contents)}; // TODO: remove this when we are loading GBX file instead
-    `;
-
-    for (let dep of this.dependencies.values()) {
-      if (dep.specifier) {
-        // This is not great. Should check __esModule key or something instead.
-        js += `map[${JSON.stringify(dep.specifier)}] = require(${JSON.stringify(dep.name)})${dep.specifier.split(':')[0] !== 'template' ? '.default' : ''};`
-      }
-    }
+    let locator = this.templateLocatorFor(this.name, 'default');
+    let template = TemplateCompiler.compile({meta: locator.meta}, this.ast);
 
     return {
       gbx: template.toJSON(),
-      js: js
+      js: ''
     };
   }
 }
